@@ -46,7 +46,7 @@ export interface Rule {
 export interface ExplainOptions {
   apiKey?: string;
   model?: string;
-  /** Use curated static copy instead of OpenAI (default is AI when a key is set). */
+  /** Use curated static copy instead of AI (default is AI when ISOSO_AI_KEY is set). */
   preferBuiltin?: boolean;
 }
 

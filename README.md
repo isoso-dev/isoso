@@ -1,8 +1,83 @@
-# Isoso
+<div align="center">
 
-**Accessibility testing for developers.** Isoso scans React and TypeScript JSX for common WCAG-related patterns in your source code—locally or in CI.
+# ◆ Isoso
 
-Isoso Cloud (dashboard, org-wide analytics, policies) is separate; this repository is the open-source Phase 1 product.
+### Accessibility testing for developers who ship React & TypeScript
+
+**Static WCAG-oriented rules in your terminal · Optional AI review · CI-ready JSON reports**
+
+<br />
+
+[![Node](https://img.shields.io/badge/node-%3E%3D18-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+[![npm](https://img.shields.io/badge/npm-isoso-CB3837?style=flat-square&logo=npm&logoColor=white)](https://www.npmjs.com/package/isoso)
+
+*Catch alt text gaps, keyboard traps, and unlabeled controls before they reach production.*
+
+</div>
+
+---
+
+## Table of contents
+
+- [What Isoso does](#what-isoso-does)
+- [Install](#install)
+- [Quick start](#quick-start)
+- [Commands](#commands)
+  - [`isoso scan`](#isoso-scan)
+  - [`isoso rules`](#isoso-rules)
+  - [`isoso explain`](#isoso-explain)
+- [Built-in rules](#built-in-rules)
+- [Static vs AI scanning](#static-vs-ai-scanning)
+- [CI integration](#ci-integration)
+- [Monorepo layout](#monorepo-layout)
+- [Developing Isoso](#developing-isoso)
+- [Isoso Cloud](#isoso-cloud)
+- [License](#license)
+
+---
+
+## What Isoso does
+
+Isoso reads your **`.tsx` / `.jsx`** source (not the live DOM) and flags patterns that commonly break **WCAG** expectations—missing `alt` text, clickable `<div>`s without roles, unlabeled inputs, and more.
+
+```mermaid
+flowchart LR
+  subgraph input [Your repo]
+    JSX[.tsx / .jsx files]
+  end
+  subgraph isoso [Isoso CLI]
+    Parse[Babel JSX extract]
+    Static[8 static rules]
+    AI[Optional AI pass]
+    Report[Text or JSON report]
+  end
+  subgraph output [Outcomes]
+    Term[Terminal]
+    CI[Exit code for CI]
+    Artifact[JSON artifact]
+  end
+  JSX --> Parse
+  Parse --> Static
+  Parse --> AI
+  Static --> Report
+  AI --> Report
+  Report --> Term
+  Report --> CI
+  Report --> Artifact
+```
+
+| Mode | When to use |
+|------|-------------|
+| **Static rules** | Fast, free, deterministic—ideal for CI and pre-commit |
+| **AI scan** | Deeper pass on each file when you set an AI key; findings use the **same rule IDs and severities** as static mode |
+| **Explain** | Turn a finding into impact + remediation narrative (AI or built-in copy) |
+
+> **Note:** Isoso is **source-level** analysis. It complements—not replaces—browser tools (axe, Lighthouse), screen reader testing, and manual QA.
+
+**Isoso Cloud** (dashboard, org analytics, GitHub-connected scans, policies) is a separate product. **This repository** is the open-source CLI and rule engine (**Phase 1**).
+
+---
 
 ## Install
 
@@ -10,65 +85,260 @@ Isoso Cloud (dashboard, org-wide analytics, policies) is separate; this reposito
 npm install -D isoso
 ```
 
-After install, run the **`isoso`** command via npm scripts or `npx`:
+Run via **`npx`**, npm scripts, or your package manager of choice:
 
 ```bash
 npx isoso scan
-# or add to package.json: "a11y": "isoso scan"
 ```
+
+**Requirements:** Node.js **18+**
+
+---
 
 ## Quick start
 
 ```bash
-# Scan current directory (OpenAI when OPENAI_API_KEY is in .env; else static rules)
+# Scan the current directory (AI if ISOSO_AI_KEY is in .env, else static rules)
 npx isoso scan
 
-# Force static rules only (no API)
+# Scan a sample app in this monorepo (after build)
+npx isoso scan examples/sample-app
+
+# Static only—no API calls
 npx isoso scan --static
 
-# JSON report for CI
+# JSON for pipelines + fail the job on serious+ findings
 npx isoso scan --format json -o isoso-report.json --fail-on serious
 
-# List rules
+# See every rule id and WCAG mapping
 npx isoso rules
 
-# Explain a rule (OpenAI when a key is in .env; add --builtin for static copy)
-npx isoso explain --rule img-missing-alt
-
-# Add GitHub Actions workflow
-npx isoso github
+# Explain one rule (AI when a key is set)
+npx isoso explain --rule img-missing-alt --file src/App.tsx --line 12
 ```
 
-## Monorepo packages
+**Suggested `package.json` script:**
 
-| Package | Purpose |
-|---------|---------|
-| `isoso` | CLI (`scan`, `explain`, `rules`, `github`) |
-| `@isoso/core` | Rule engine, reports, explanations |
-| `@isoso/scanner` | React/TSX static scanner |
+```json
+{
+  "scripts": {
+    "a11y": "isoso scan --static --fail-on serious",
+    "a11y:report": "isoso scan --format json -o isoso-report.json"
+  }
+}
+```
 
-## Development
+---
+
+## Commands
+
+### `isoso scan`
+
+Scan a project tree for accessibility issues in JSX/TSX.
+
+```bash
+isoso scan [path] [options]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `[path]` | `.` | Project root to scan |
+| `-f, --format <type>` | `text` | `text` or `json` |
+| `-o, --output <file>` | — | Write report to a file (stdout stays clean in JSON mode when combined with `-o`) |
+| `--fail-on <severity>` | `serious` | Exit code **1** if any finding is **at or above** this severity (`critical`, `serious`, `moderate`, `minor`) |
+| `--rules <ids>` | all | Comma-separated rule ids (e.g. `img-missing-alt,button-missing-name`) |
+| `--static` | — | Force built-in rules only |
+| `--ai` | — | Require AI scan (errors if `ISOSO_AI_KEY` is missing) |
+
+**What gets scanned**
+
+- **Glob:** `**/*.{tsx,jsx}`
+- **Ignored:** `node_modules`, `dist`, `build`, `.next`, `coverage`
+
+**Example text output (abbreviated)**
+
+```text
+Isoso accessibility scan
+Engine: static rules
+Root: /app
+Files scanned: 42
+Findings: 3
+
+  critical: 1
+  serious: 2
+
+[critical] img-missing-alt — src/Hero.tsx:18:7
+  <img> is missing an alt attribute.
+  Fix: Add alt="..." describing the image, or alt="" if decorative.
+
+Completed in 124ms
+```
+
+---
+
+### `isoso rules`
+
+Print all static rules with **id**, human name, **severity**, and **WCAG** success criteria references.
+
+```bash
+isoso rules
+```
+
+Use the ids with `--rules` or `isoso explain --rule <id>`.
+
+---
+
+### `isoso explain`
+
+Expand a finding into **Summary**, **Impact**, and **Remediation**.
+
+```bash
+isoso explain --rule <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--rule <id>` | **Required.** Rule id from `isoso rules` |
+| `--file <path>` | File path for context |
+| `--line <n>` | Line number (default `1`) |
+| `--message <text>` | Override the finding message |
+| `--snippet <text>` | Code snippet from your scan |
+| `--builtin` | Curated WCAG guidance only—no API call |
+
+**Environment:** `ISOSO_AI_KEY` in `.env` (see below). Optional `ISOSO_AI_MODEL`, `ISOSO_AI_BASE_URL`, or `ISOSO_AI_CHAT_URL` for your provider.
+
+---
+
+## Built-in rules
+
+Eight JSX-focused checks ship with `@isoso/core`. Severity drives `--fail-on` and CI gates.
+
+| Rule id | Severity | What it catches |
+|---------|----------|-----------------|
+| `img-missing-alt` | critical | `<img>` without `alt` (unless decorative / `aria-hidden`) |
+| `interactive-without-role` | serious | `div` / `span` / etc. with `onClick` but no button/link role or keyboard pattern |
+| `button-missing-name` | serious | `<button>` with no visible text, `aria-label`, or `aria-labelledby` |
+| `input-missing-label` | serious | Inputs without label association (`htmlFor`, `aria-label`, etc.) |
+| `anchor-without-href-or-name` | moderate | Links missing `href` or discernible name |
+| `positive-tabindex` | moderate | `tabIndex` &gt; 0 (focus order traps) |
+| `autofocus-usage` | minor | `autoFocus` on load |
+| `aria-hidden-on-focusable` | serious | `aria-hidden` on focusable or clickable elements |
+
+Run a subset:
+
+```bash
+npx isoso scan --static --rules img-missing-alt,button-missing-name
+```
+
+---
+
+## Static vs AI scanning
+
+| | **Static (`--static`)** | **AI (default when key present)** |
+|--|-------------------------|-----------------------------------|
+| Speed | Very fast | Slower (per-file API calls) |
+| Cost | Free | Provider usage (API billing) |
+| Determinism | Same input → same output | May vary by model |
+| Finding shape | `ruleId`, severity, WCAG, line, message, fix | **Same schema** as static rules |
+
+**Auto behavior**
+
+1. If `ISOSO_AI_KEY` is set → AI scan (unless `--static`).
+2. If no key → static rules (CLI prints a yellow hint).
+3. `--ai` → fail fast if no key.
+
+**Setup**
+
+1. Copy `.env.example` → `.env` in this repo **or** in the app where you run `isoso`.
+2. Set `ISOSO_AI_KEY=...` (your provider’s API key)
+3. Run `npx isoso scan` (omit `--static`).
+
+The CLI walks **upward** from the current working directory to find `.env`.
+
+```bash
+cp .env.example .env
+# edit .env, then:
+npx isoso explain --rule img-missing-alt --file src/App.tsx --line 24
+```
+
+Use `--builtin` on `explain` when you want zero network calls.
+
+**Custom AI provider** (chat completions JSON API):
+
+| Variable | Purpose |
+|----------|---------|
+| `ISOSO_AI_KEY` | API key sent as `Authorization: Bearer …` |
+| `ISOSO_AI_MODEL` | Model id (default `gpt-4o-mini`) |
+| `ISOSO_AI_CHAT_URL` | Full chat completions URL |
+| `ISOSO_AI_BASE_URL` | Base URL; Isoso calls `{BASE}/chat/completions` |
+
+---
+
+## CI integration
+
+Run **`isoso scan`** in any CI pipeline (GitHub Actions, GitLab CI, etc.). Exit code **`1`** when findings meet or exceed `--fail-on`.
+
+```yaml
+# Example GitHub Actions step
+- run: npx isoso scan --static --format json --fail-on serious -o isoso-report.json
+```
+
+**Severity gate:** `--fail-on serious` fails on **critical** and **serious** findings. Use `--fail-on critical` for a looser gate, or `--fail-on moderate` for stricter.
+
+**Tips**
+
+- Prefer `--static` in CI for speed and predictable cost.
+- Store `ISOSO_AI_KEY` in CI secrets only if you intentionally run AI in the pipeline.
+- **GitHub org integration** (connect repos, PR scans, dashboard history) is **[Isoso Cloud](https://isoso.dev)** only—not part of this CLI.
+
+---
+
+## Monorepo layout
+
+| Package | npm name | Role |
+|---------|----------|------|
+| `packages/isoso-cli` | **`isoso`** | CLI entrypoint (`scan`, `rules`, `explain`) |
+| `packages/isoso-core` | `@isoso/core` | Rule engine, reports, AI scan + explain |
+| `packages/isoso-scanner` | `@isoso/scanner` | Glob + Babel JSX extraction, orchestrates core |
+
+Published **`isoso`** bundles vendored `@isoso/core` and `@isoso/scanner` for a single install.
+
+---
+
+## Developing Isoso
+
+From the monorepo root:
 
 ```bash
 npm install
 npm run build
+npm test                    # @isoso/core unit tests
 npx isoso scan examples/sample-app
 ```
 
-## AI scan and explanations
+| Script | Action |
+|--------|--------|
+| `npm run build` | Build core → scanner → copy vendor → build CLI |
+| `npm run dev` | Build and run CLI via Node |
 
-With `OPENAI_API_KEY` or `ISOSO_AI_KEY` in `.env`, **`isoso scan` uses OpenAI** to review each `.tsx`/`.jsx` file and returns findings in the **same format** as the eight built-in rules (`ruleId`, severity, WCAG, line, message, fix hint). Counts and terminal/JSON reports match the static engine.
+**Sample violations:** `examples/sample-app/BadExample.tsx` intentionally breaks several rules—use it to verify scans locally.
 
-The CLI loads `.env` from your current directory and parent folders automatically.
+---
 
-`isoso explain` uses the same key for deeper text on a single finding.
+## Isoso Cloud
 
-1. Copy `Isoso CLI/.env.example` to `Isoso CLI/.env` (or put `.env` in the app repo where you run `isoso`).
-2. Paste your key as `OPENAI_API_KEY=sk-...`
-3. Run `npx isoso explain --rule img-missing-alt --file src/App.tsx --line 24`
+Need **org-wide dashboards**, **GitHub-connected repo scans**, **teams**, **policies**, and **billing**? That lives in **Isoso Web / Cloud**, not in this CLI repo. The CLI remains the open-source local and CI story; cloud scans align on the **same rule IDs** where static heuristics apply.
 
-Use `--builtin` to skip the API and use curated WCAG guidance only.
+---
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+---
+
+<div align="center">
+
+**Ship accessible UI earlier.** Run `npx isoso scan` on your app today.
+
+</div>

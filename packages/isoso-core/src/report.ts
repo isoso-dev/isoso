@@ -5,7 +5,7 @@ const SEVERITY_ORDER: Severity[] = ["critical", "serious", "moderate", "minor"];
 
 export function formatTextReport(result: ScanResult): string {
   const { bySeverity, total } = summarizeFindings(result.findings);
-  const engineLabel = result.engine === "ai" ? "OpenAI" : "static rules";
+  const engineLabel = result.engine === "ai" ? "AI" : "static rules";
   const lines: string[] = [
     "Isoso accessibility scan",
     `Engine: ${engineLabel}`,
@@ -40,7 +40,7 @@ export function formatTextReport(result: ScanResult): string {
   if (total === 0) {
     lines.push(
       result.engine === "ai"
-        ? "No issues reported by OpenAI for the scanned files."
+        ? "No issues reported by AI for the scanned files."
         : "No issues detected by Isoso static rules."
     );
   }

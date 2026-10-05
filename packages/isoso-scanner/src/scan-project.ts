@@ -3,6 +3,7 @@ import path from "node:path";
 import fg from "fast-glob";
 import {
   getRules,
+  hasAiScanKey,
   runRulesOnElement,
   scanFileWithAi,
   type Finding,
@@ -16,7 +17,7 @@ export interface ScanProjectOptions {
   patterns?: string[];
   ignore?: string[];
   ruleIds?: string[];
-  /** Default: AI when OPENAI_API_KEY / ISOSO_AI_KEY is set, otherwise static. */
+  /** Default: AI when ISOSO_AI_KEY is set, otherwise static. */
   engine?: ScanEngine;
   aiApiKey?: string;
   aiModel?: string;
@@ -34,8 +35,8 @@ const DEFAULT_IGNORE = [
 
 function resolveEngine(options: ScanProjectOptions): ScanEngine {
   if (options.engine) return options.engine;
-  const key = options.aiApiKey ?? process.env.ISOSO_AI_KEY ?? process.env.OPENAI_API_KEY;
-  return key ? "ai" : "static";
+  if (options.aiApiKey?.trim()) return "ai";
+  return hasAiScanKey() ? "ai" : "static";
 }
 
 async function scanStatic(

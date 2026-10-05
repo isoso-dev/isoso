@@ -1,3 +1,4 @@
+import { resolveAiApiKey, resolveAiChatCompletionsUrl, resolveAiModel } from "./ai-config.js";
 import { getRuleById } from "./rules/jsx-rules.js";
 import type { ExplainOptions, Explanation, Finding } from "./types.js";
 
@@ -71,12 +72,13 @@ export async function explainFinding(
     return explainFindingBuiltin(finding);
   }
 
-  const apiKey = options.apiKey ?? process.env.ISOSO_AI_KEY ?? process.env.OPENAI_API_KEY;
+  const apiKey = resolveAiApiKey(options.apiKey);
   if (!apiKey) {
     return explainFindingBuiltin(finding);
   }
 
-  const model = options.model ?? process.env.ISOSO_AI_MODEL ?? "gpt-4o-mini";
+  const model = resolveAiModel(options.model);
+  const chatUrl = resolveAiChatCompletionsUrl();
   const prompt = `You are an accessibility engineer. Explain this JSX finding briefly.
 Rule: ${finding.ruleId}
 Message: ${finding.message}
@@ -87,7 +89,7 @@ Snippet: ${finding.snippet ?? "n/a"}
 Respond in JSON with keys: summary, impact, remediation (each 1-2 sentences).`;
 
   try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch(chatUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,

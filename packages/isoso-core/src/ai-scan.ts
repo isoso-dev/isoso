@@ -1,3 +1,9 @@
+import {
+  hasAiApiKey,
+  resolveAiApiKey,
+  resolveAiChatCompletionsUrl,
+  resolveAiModel,
+} from "./ai-config.js";
 import { jsxRules } from "./rules/jsx-rules.js";
 import type { Finding, Severity } from "./types.js";
 
@@ -98,12 +104,13 @@ export async function scanFileWithAi(
     throw new Error(`File too large for AI scan (${source.length} chars): ${file}`);
   }
 
-  const apiKey = options.apiKey ?? process.env.ISOSO_AI_KEY ?? process.env.OPENAI_API_KEY;
+  const apiKey = resolveAiApiKey(options.apiKey);
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY or ISOSO_AI_KEY is required for AI scan.");
+    throw new Error("ISOSO_AI_KEY is required for AI scan.");
   }
 
-  const model = options.model ?? process.env.ISOSO_AI_MODEL ?? "gpt-4o-mini";
+  const model = resolveAiModel(options.model);
+  const chatUrl = resolveAiChatCompletionsUrl();
 
   const prompt = `You are an accessibility engineer reviewing React/TSX source code.
 
@@ -137,7 +144,7 @@ If no issues, return { "findings": [] }.
 Source:
 ${numberedSource(source)}`;
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetch(chatUrl, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -153,7 +160,7 @@ ${numberedSource(source)}`;
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`OpenAI scan failed (${res.status}): ${body.slice(0, 200)}`);
+    throw new Error(`AI scan failed (${res.status}): ${body.slice(0, 200)}`);
   }
 
   const data = (await res.json()) as {
@@ -166,7 +173,7 @@ ${numberedSource(source)}`;
   try {
     parsed = JSON.parse(content) as { findings?: unknown[] };
   } catch {
-    throw new Error("OpenAI returned invalid JSON for scan results.");
+    throw new Error("AI provider returned invalid JSON for scan results.");
   }
 
   const list = Array.isArray(parsed.findings) ? parsed.findings : [];
@@ -179,5 +186,5 @@ ${numberedSource(source)}`;
 }
 
 export function hasAiScanKey(): boolean {
-  return Boolean(process.env.ISOSO_AI_KEY ?? process.env.OPENAI_API_KEY);
+  return hasAiApiKey();
 }

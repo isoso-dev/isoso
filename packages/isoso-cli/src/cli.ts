@@ -11,7 +11,6 @@ import {
   type Severity,
 } from "@isoso/core";
 import { scanProject } from "@isoso/scanner";
-import { runGithubInit } from "./commands/github-init.js";
 import { loadProjectEnv } from "./load-env.js";
 
 loadProjectEnv();
@@ -31,8 +30,8 @@ program
   .option("--fail-on <severity>", "Exit 1 if findings at or above severity", "serious")
   .option("--rules <ids>", "Comma-separated rule ids to run")
   .option("-o, --output <file>", "Write report to file (useful in CI)")
-  .option("--static", "Use built-in static rules only (no OpenAI scan)")
-  .option("--ai", "Require OpenAI scan (needs OPENAI_API_KEY or ISOSO_AI_KEY in .env)")
+  .option("--static", "Use built-in static rules only (no AI scan)")
+  .option("--ai", "Require AI scan (needs ISOSO_AI_KEY in .env)")
   .action(
     async (
       scanPath: string,
@@ -47,13 +46,15 @@ program
     ) => {
     const root = path.resolve(scanPath);
     const ruleIds = opts.rules?.split(",").map((s) => s.trim()).filter(Boolean);
-    const hasKey = Boolean(process.env.ISOSO_AI_KEY ?? process.env.OPENAI_API_KEY);
+    const hasKey = Boolean(
+      process.env.ISOSO_AI_KEY?.trim() ?? process.env.OPENAI_API_KEY?.trim(),
+    );
 
     if (opts.ai && !hasKey) {
       console.error(
         chalk.red(
-          "AI scan requires OPENAI_API_KEY or ISOSO_AI_KEY. Add it to .env (see .env.example) or omit --ai."
-        )
+          "AI scan requires ISOSO_AI_KEY. Add it to .env (see .env.example) or omit --ai.",
+        ),
       );
       process.exit(1);
     }
@@ -66,12 +67,12 @@ program
     const engine = opts.static ? "static" : opts.ai ? "ai" : undefined;
 
     if (!opts.static && hasKey) {
-      console.error(chalk.dim("Scanning with OpenAI (same finding format as Isoso rules)…"));
+      console.error(chalk.dim("Scanning with AI (same finding format as Isoso rules)…"));
     } else if (!hasKey && !opts.static) {
       console.error(
         chalk.yellow(
-          "No API key found; using static rules. Set OPENAI_API_KEY in .env for AI scan."
-        )
+          "No AI key found; using static rules. Set ISOSO_AI_KEY in .env for AI scan.",
+        ),
       );
     }
 
@@ -102,7 +103,7 @@ program
 
 program
   .command("explain")
-  .description("Explain a finding (OpenAI by default when OPENAI_API_KEY or ISOSO_AI_KEY is set)")
+  .description("Explain a finding (AI when ISOSO_AI_KEY is set)")
   .requiredOption("--rule <id>", "Rule id")
   .option("--file <path>", "File path")
   .option("--line <n>", "Line number", "1")
@@ -130,12 +131,14 @@ program
         snippet: opts.snippet,
         fixHint: rule?.description,
       };
-      const hasKey = Boolean(process.env.ISOSO_AI_KEY ?? process.env.OPENAI_API_KEY);
+      const hasKey = Boolean(
+        process.env.ISOSO_AI_KEY?.trim() ?? process.env.OPENAI_API_KEY?.trim(),
+      );
       if (!opts.builtin && !hasKey) {
         console.error(
           chalk.yellow(
-            "No OPENAI_API_KEY or ISOSO_AI_KEY found. Add one to .env in your project (see Isoso CLI/.env.example). Using built-in guidance."
-          )
+            "No ISOSO_AI_KEY found. Add one to .env in your project (see .env.example). Using built-in guidance.",
+          ),
         );
       }
       const explanation = await explainFinding(finding, { preferBuiltin: opts.builtin });
@@ -155,17 +158,6 @@ program
       console.log(`${chalk.yellow(r.id)} — ${r.name} [${r.severity}]`);
       console.log(chalk.dim(`  WCAG: ${r.wcag.join(", ")}`));
     }
-  });
-
-program
-  .command("github")
-  .description("Add GitHub Actions workflow for CI scanning")
-  .argument("[path]", "Repository root", ".")
-  .option("--force", "Overwrite existing workflow")
-  .action(async (repoPath: string, opts: { force?: boolean }) => {
-    const root = path.resolve(repoPath);
-    await runGithubInit(root, { force: opts.force });
-    console.log(chalk.green("GitHub Actions workflow ready at .github/workflows/isoso-a11y.yml"));
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {

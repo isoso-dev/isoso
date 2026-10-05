@@ -31,7 +31,6 @@
   "files": [
     "bin",
     "dist",
-    "templates",
     "vendor"
   ],
   "keywords": [
