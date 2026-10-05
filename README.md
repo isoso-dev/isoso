@@ -81,20 +81,59 @@ flowchart LR
 
 ## Install
 
+**npm package:** [`@isoso.dev/isoso`](https://www.npmjs.com/package/@isoso.dev/isoso) (scoped). There is **no** unscoped `isoso` package on npm—the name is reserved/blocked. The **CLI command** is still `isoso`.
+
+**Requirements:** Node.js **18+**
+
+### Run once (no `package.json` change)
+
+Use the **scoped** name with `npx`:
+
+```bash
+npx @isoso.dev/isoso scan
+npx @isoso.dev/isoso rules
+npx @isoso.dev/isoso explain --rule img-missing-alt --file src/App.tsx --line 12
+```
+
+Pin a version when you care about reproducibility:
+
+```bash
+npx @isoso.dev/isoso@0.2.0 scan
+```
+
+### Add to the repo you scan (typical)
+
+Install as a dev dependency **in the app you want to scan**, not in unrelated projects:
+
 ```bash
 npm install -D @isoso.dev/isoso
 ```
 
-The unscoped name `isoso` is blocked on npm (too close to `csso`). After install, the CLI command is still **`isoso`** (`node_modules/.bin/isoso`).
-
-Run via **`npx`**, npm scripts, or your package manager of choice:
+Then run the **`isoso`** binary from that project (local install or npm scripts):
 
 ```bash
-npx @isoso.dev/isoso scan
-# or, after install: npx isoso scan
+npx isoso scan
+isoso rules
 ```
 
-**Requirements:** Node.js **18+**
+`npx isoso …` uses `node_modules/.bin/isoso` after install. **`npm @isoso.dev/isoso`** is not valid—`npm` expects subcommands like `install`, not a package name.
+
+### Global install (optional)
+
+```bash
+npm install -g @isoso.dev/isoso@latest
+isoso scan
+isoso --version
+```
+
+Global `isoso` does **not** auto-update when a new version is published. After upgrades on npm, run `npm install -g @isoso.dev/isoso@latest` again (or keep using `npx @isoso.dev/isoso@latest …`).
+
+| You type | When it works |
+|----------|----------------|
+| `npx @isoso.dev/isoso scan` | Always (downloads/runs the published CLI) |
+| `npx isoso scan` | After `npm install -D @isoso.dev/isoso` in this directory |
+| `isoso scan` | After local install (npm script / `node_modules/.bin`) or **global** install |
+| `npm @isoso.dev/isoso …` | **Never** — use `npm install` or `npx` |
 
 ---
 
@@ -102,22 +141,25 @@ npx @isoso.dev/isoso scan
 
 ```bash
 # Scan the current directory (AI if ISOSO_AI_KEY is in .env, else static rules)
+npx @isoso.dev/isoso scan
+
+# Or, after npm install -D @isoso.dev/isoso in this repo:
 npx isoso scan
 
-# Scan a sample app in this monorepo (after build)
+# Scan a sample app in this monorepo (after clone + build)
 npx isoso scan examples/sample-app
 
 # Static only—no API calls
-npx isoso scan --static
+npx @isoso.dev/isoso scan --static
 
 # JSON for pipelines + fail the job on serious+ findings
-npx isoso scan --format json -o isoso-report.json --fail-on serious
+npx @isoso.dev/isoso scan --format json -o isoso-report.json --fail-on serious
 
-# See every rule id and WCAG mapping
-npx isoso rules
+# See every rule id and WCAG mapping (40 rules)
+npx @isoso.dev/isoso rules
 
 # Explain one rule (AI when a key is set)
-npx isoso explain --rule img-missing-alt --file src/App.tsx --line 12
+npx @isoso.dev/isoso explain --rule img-missing-alt --file src/App.tsx --line 12
 ```
 
 **Suggested `package.json` script:**
@@ -227,7 +269,7 @@ Categories include: **text alternatives** (`img-missing-alt`, `svg-missing-acces
 Run a subset:
 
 ```bash
-npx isoso scan --static --rules img-missing-alt,button-missing-name
+npx @isoso.dev/isoso scan --static --rules img-missing-alt,button-missing-name
 ```
 
 ---
@@ -251,14 +293,14 @@ npx isoso scan --static --rules img-missing-alt,button-missing-name
 
 1. Copy `.env.example` → `.env` in this repo **or** in the app where you run `isoso`.
 2. Set `ISOSO_AI_KEY=...` (your provider’s API key)
-3. Run `npx isoso scan` (omit `--static`).
+3. Run `npx @isoso.dev/isoso scan` (omit `--static`), or `isoso scan` after a local install.
 
 The CLI walks **upward** from the current working directory to find `.env`.
 
 ```bash
 cp .env.example .env
 # edit .env, then:
-npx isoso explain --rule img-missing-alt --file src/App.tsx --line 24
+npx @isoso.dev/isoso explain --rule img-missing-alt --file src/App.tsx --line 24
 ```
 
 Use `--builtin` on `explain` when you want zero network calls.
@@ -280,7 +322,7 @@ Run **`isoso scan`** in any CI pipeline (GitHub Actions, GitLab CI, etc.). Exit 
 
 ```yaml
 # Example GitHub Actions step
-- run: npx isoso scan --static --format json --fail-on serious -o isoso-report.json
+- run: npx @isoso.dev/isoso scan --static --format json --fail-on serious -o isoso-report.json
 ```
 
 **Severity gate:** `--fail-on serious` fails on **critical** and **serious** findings. Use `--fail-on critical` for a looser gate, or `--fail-on moderate` for stricter.
@@ -297,11 +339,11 @@ Run **`isoso scan`** in any CI pipeline (GitHub Actions, GitLab CI, etc.). Exit 
 
 | Package | npm name | Role |
 |---------|----------|------|
-| `packages/isoso-cli` | **`isoso`** | CLI entrypoint (`scan`, `rules`, `explain`) |
+| `packages/isoso-cli` | **`@isoso.dev/isoso`** | CLI entrypoint (`scan`, `rules`, `explain`); binary name **`isoso`** |
 | `packages/isoso-core` | `@isoso/core` | Rule engine, reports, AI scan + explain |
 | `packages/isoso-scanner` | `@isoso/scanner` | Glob + Babel JSX extraction, orchestrates core |
 
-Published **`isoso`** bundles vendored `@isoso/core` and `@isoso/scanner` for a single install.
+Published **`@isoso.dev/isoso`** bundles vendored `@isoso/core` and `@isoso/scanner` for a single install.
 
 ---
 
@@ -339,6 +381,6 @@ MIT — see [LICENSE](LICENSE).
 
 <div align="center">
 
-**Ship accessible UI earlier.** Run `npx isoso scan` on your app today.
+**Ship accessible UI earlier.** Run `npx @isoso.dev/isoso scan` on your app today.
 
 </div>
