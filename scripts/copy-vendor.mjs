@@ -21,13 +21,20 @@ const packages = [
   },
 ];
 
+const coreVersion = JSON.parse(
+  readFileSync(path.join(root, "packages/isoso-core/package.json"), "utf8")
+).version;
+
 for (const pkg of packages) {
   const dest = path.join(vendorRoot, pkg.dir);
   mkdirSync(dest, { recursive: true });
   cpSync(path.join(pkg.from, "dist"), path.join(dest, "dist"), { recursive: true });
+  const sourcePkg = JSON.parse(
+    readFileSync(path.join(pkg.from, "package.json"), "utf8")
+  );
   const manifest = {
     name: pkg.name,
-    version: "0.1.0",
+    version: sourcePkg.version,
     type: "module",
     main: "./dist/index.js",
     exports: {
@@ -38,12 +45,9 @@ for (const pkg of packages) {
     },
   };
   if (pkg.name === "@isoso/scanner") {
-    const sourcePkg = JSON.parse(
-      readFileSync(path.join(pkg.from, "package.json"), "utf8")
-    );
     manifest.dependencies = {
       ...sourcePkg.dependencies,
-      "@isoso/core": "0.1.0",
+      "@isoso/core": coreVersion,
     };
   }
   writeFileSync(path.join(dest, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
