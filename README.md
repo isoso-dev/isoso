@@ -1,6 +1,6 @@
 <div align="center">
 
-# ◆ Isoso
+<img src="docs/isoso-logo.png" alt="Isoso" width="360" />
 
 ### Accessibility testing for developers who ship React & TypeScript
 
