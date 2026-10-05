@@ -31,10 +31,56 @@ program
   .option("--fail-on <severity>", "Exit 1 if findings at or above severity", "serious")
   .option("--rules <ids>", "Comma-separated rule ids to run")
   .option("-o, --output <file>", "Write report to file (useful in CI)")
-  .action(async (scanPath: string, opts: { format: string; failOn: string; rules?: string; output?: string }) => {
+  .option("--static", "Use built-in static rules only (no OpenAI scan)")
+  .option("--ai", "Require OpenAI scan (needs OPENAI_API_KEY or ISOSO_AI_KEY in .env)")
+  .action(
+    async (
+      scanPath: string,
+      opts: {
+        format: string;
+        failOn: string;
+        rules?: string;
+        output?: string;
+        static?: boolean;
+        ai?: boolean;
+      }
+    ) => {
     const root = path.resolve(scanPath);
     const ruleIds = opts.rules?.split(",").map((s) => s.trim()).filter(Boolean);
-    const result = await scanProject({ root, ruleIds });
+    const hasKey = Boolean(process.env.ISOSO_AI_KEY ?? process.env.OPENAI_API_KEY);
+
+    if (opts.ai && !hasKey) {
+      console.error(
+        chalk.red(
+          "AI scan requires OPENAI_API_KEY or ISOSO_AI_KEY. Add it to .env (see .env.example) or omit --ai."
+        )
+      );
+      process.exit(1);
+    }
+
+    if (opts.static && opts.ai) {
+      console.error(chalk.red("Use either --static or --ai, not both."));
+      process.exit(1);
+    }
+
+    const engine = opts.static ? "static" : opts.ai ? "ai" : undefined;
+
+    if (!opts.static && hasKey) {
+      console.error(chalk.dim("Scanning with OpenAI (same finding format as Isoso rules)…"));
+    } else if (!hasKey && !opts.static) {
+      console.error(
+        chalk.yellow(
+          "No API key found; using static rules. Set OPENAI_API_KEY in .env for AI scan."
+        )
+      );
+    }
+
+    const result = await scanProject({
+      root,
+      ruleIds,
+      engine,
+      onProgress: (msg) => console.error(chalk.dim(msg)),
+    });
 
     const report =
       opts.format === "json" ? formatJsonReport(result) : formatTextReport(result);
@@ -51,7 +97,8 @@ program
 
     const failOn = opts.failOn as Severity;
     process.exit(exitCodeForResult(result, failOn));
-  });
+  }
+  );
 
 program
   .command("explain")

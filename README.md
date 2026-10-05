@@ -20,8 +20,11 @@ npx isoso scan
 ## Quick start
 
 ```bash
-# Scan current directory
+# Scan current directory (OpenAI when OPENAI_API_KEY is in .env; else static rules)
 npx isoso scan
+
+# Force static rules only (no API)
+npx isoso scan --static
 
 # JSON report for CI
 npx isoso scan --format json -o isoso-report.json --fail-on serious
@@ -52,9 +55,13 @@ npm run build
 npx isoso scan examples/sample-app
 ```
 
-## AI explanations
+## AI scan and explanations
 
-`isoso explain` calls OpenAI when `OPENAI_API_KEY` or `ISOSO_AI_KEY` is set. The CLI loads `.env` from your current directory and parent folders automatically.
+With `OPENAI_API_KEY` or `ISOSO_AI_KEY` in `.env`, **`isoso scan` uses OpenAI** to review each `.tsx`/`.jsx` file and returns findings in the **same format** as the eight built-in rules (`ruleId`, severity, WCAG, line, message, fix hint). Counts and terminal/JSON reports match the static engine.
+
+The CLI loads `.env` from your current directory and parent folders automatically.
+
+`isoso explain` uses the same key for deeper text on a single finding.
 
 1. Copy `Isoso CLI/.env.example` to `Isoso CLI/.env` (or put `.env` in the app repo where you run `isoso`).
 2. Paste your key as `OPENAI_API_KEY=sk-...`

@@ -20,4 +20,4 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test
-      - run: node packages/isoso-cli/dist/cli.js scan examples/sample-app --fail-on critical
+      - run: node packages/isoso-cli/dist/cli.js scan examples/sample-app --static --fail-on critical

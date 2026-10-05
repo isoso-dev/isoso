@@ -12,12 +12,15 @@ export interface Finding {
   fixHint?: string;
 }
 
+export type ScanEngine = "ai" | "static";
+
 export interface ScanResult {
   root: string;
   scannedAt: string;
   filesScanned: number;
   findings: Finding[];
   durationMs: number;
+  engine: ScanEngine;
 }
 
 export interface JsxElementContext {
