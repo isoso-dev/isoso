@@ -1,10 +1,13 @@
 {
-  "name": "isoso",
+  "name": "@isoso.dev/isoso",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Accessibility testing for React and TypeScript codebases",
   "type": "module",
   "bin": {
-    "isoso": "./bin/isoso.js"
+    "isoso": "bin/isoso.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

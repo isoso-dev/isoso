@@ -10,7 +10,7 @@
 
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
-[![npm](https://img.shields.io/badge/npm-isoso-CB3837?style=flat-square&logo=npm&logoColor=white)](https://www.npmjs.com/package/isoso)
+[![npm](https://img.shields.io/badge/npm-@isoso.dev/isoso-CB3837?style=flat-square&logo=npm&logoColor=white)](https://www.npmjs.com/package/@isoso.dev/isoso)
 
 *Catch alt text gaps, keyboard traps, and unlabeled controls before they reach production.*
 
@@ -82,13 +82,16 @@ flowchart LR
 ## Install
 
 ```bash
-npm install -D isoso
+npm install -D @isoso.dev/isoso
 ```
+
+The unscoped name `isoso` is blocked on npm (too close to `csso`). After install, the CLI command is still **`isoso`** (`node_modules/.bin/isoso`).
 
 Run via **`npx`**, npm scripts, or your package manager of choice:
 
 ```bash
-npx isoso scan
+npx @isoso.dev/isoso scan
+# or, after install: npx isoso scan
 ```
 
 **Requirements:** Node.js **18+**
