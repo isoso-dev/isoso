@@ -48,7 +48,7 @@ flowchart LR
   end
   subgraph isoso [Isoso CLI]
     Parse[Babel JSX extract]
-    Static[8 static rules]
+    Static[40 static rules]
     AI[Optional AI pass]
     Report[Text or JSON report]
   end
@@ -214,18 +214,15 @@ isoso explain --rule <id> [options]
 
 ## Built-in rules
 
-Eight JSX-focused checks ship with `@isoso/core`. Severity drives `--fail-on` and CI gates.
+**40** static checks ship with `@isoso/core` (images, forms, keyboard, landmarks, media, tables, focus, and document structure). Severity drives `--fail-on` and CI gates.
 
-| Rule id | Severity | What it catches |
-|---------|----------|-----------------|
-| `img-missing-alt` | critical | `<img>` without `alt` (unless decorative / `aria-hidden`) |
-| `interactive-without-role` | serious | `div` / `span` / etc. with `onClick` but no button/link role or keyboard pattern |
-| `button-missing-name` | serious | `<button>` with no visible text, `aria-label`, or `aria-labelledby` |
-| `input-missing-label` | serious | Inputs without label association (`htmlFor`, `aria-label`, etc.) |
-| `anchor-without-href-or-name` | moderate | Links missing `href` or discernible name |
-| `positive-tabindex` | moderate | `tabIndex` &gt; 0 (focus order traps) |
-| `autofocus-usage` | minor | `autoFocus` on load |
-| `aria-hidden-on-focusable` | serious | `aria-hidden` on focusable or clickable elements |
+List every rule id, WCAG reference, and severity:
+
+```bash
+npx @isoso.dev/isoso rules
+```
+
+Categories include: **text alternatives** (`img-missing-alt`, `svg-missing-accessible-name`, `role-img-missing-label`, …), **keyboard & focus** (`click-without-keyboard-handler`, `tabindex-zero-without-role`, `outline-none-utility`, …), **forms** (`input-missing-label`, `label-without-htmlfor`, `fieldset-needs-legend`, …), **links & buttons**, **landmarks** (`nav-missing-label`, `multiple-main-landmarks`, …), **media**, and **document** (`html-missing-lang`, `multiple-h1`).
 
 Run a subset:
 

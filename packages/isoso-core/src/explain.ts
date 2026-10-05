@@ -48,6 +48,37 @@ const BUILTIN: Record<
     impact: "Users may focus controls that screen readers cannot announce.",
     remediation: "Do not combine aria-hidden with focusable elements; use inert or disable instead.",
   },
+  "svg-missing-accessible-name": {
+    summary: "The SVG has no name in the accessibility tree.",
+    impact: "Screen reader users cannot understand the purpose of informative graphics.",
+    remediation:
+      'Use aria-label, aria-labelledby, or title content; use aria-hidden="true" if decorative.',
+  },
+  "iframe-missing-title": {
+    summary: "Embedded frames need a title describing their content.",
+    impact: "Users cannot identify what the iframe contains when navigating by landmarks.",
+    remediation: 'Add a concise title attribute, e.g. title="Payment form".',
+  },
+  "input-image-missing-alt": {
+    summary: "Image submit buttons use alt text as their accessible name.",
+    impact: "The control is announced without purpose if alt is missing.",
+    remediation: 'Add alt="Describe the action this button performs".',
+  },
+  "click-without-keyboard-handler": {
+    summary: "Mouse-only activation excludes keyboard users.",
+    impact: "The control cannot be operated without a pointer device.",
+    remediation: "Handle Enter/Space in onKeyDown, or use a native button or link.",
+  },
+  "role-button-missing-tabindex": {
+    summary: "A custom button is not in the tab order.",
+    impact: "Keyboard users cannot reach the control to activate it.",
+    remediation: "Add tabIndex={0} with keyboard handlers, or use <button>.",
+  },
+  "target-blank-without-rel": {
+    summary: "New-window links without rel can create security and UX issues.",
+    impact: "Users may not realize a new tab opened; reverse tabnabbing is a risk.",
+    remediation: 'Add rel="noopener noreferrer" when using target="_blank".',
+  },
 };
 
 export function explainFindingBuiltin(finding: Finding): Explanation {

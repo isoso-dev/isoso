@@ -4,6 +4,7 @@ import fg from "fast-glob";
 import {
   getRules,
   hasAiScanKey,
+  runFileRules,
   runRulesOnElement,
   scanFileWithAi,
   type Finding,
@@ -57,6 +58,7 @@ async function scanStatic(
     for (const el of elements) {
       findings.push(...runRulesOnElement(el, rules));
     }
+    findings.push(...runFileRules(file, source));
   }
 
   return findings;
