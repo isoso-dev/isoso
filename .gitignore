@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+*.log
+.DS_Store
+isoso-report.json
+packages/isoso-cli/vendor
+packages/isoso-cli/dist/isoso.bundle.js

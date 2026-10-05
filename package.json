@@ -1,0 +1,21 @@
+{
+  "name": "isoso-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @isoso/core && npm run build -w @isoso/scanner && node scripts/copy-vendor.mjs && npm run build -w isoso",
+    "dev": "npm run build && node packages/isoso-cli/dist/cli.js",
+    "test": "npm run test -w @isoso/core"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/babel__traverse": "^7.20.6",
+    "@types/node": "^22.10.2",
+    "isoso": "workspace:*",
+    "typescript": "^5.7.2"
+  }
+}

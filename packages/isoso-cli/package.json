@@ -1,0 +1,49 @@
+{
+  "name": "isoso",
+  "version": "0.1.0",
+  "description": "Accessibility testing for React and TypeScript codebases",
+  "type": "module",
+  "bin": {
+    "isoso": "./bin/isoso.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "node ../../scripts/ensure-build.mjs"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.26.3",
+    "@babel/traverse": "^7.26.4",
+    "@babel/types": "^7.26.3",
+    "@isoso/core": "file:./vendor/core",
+    "@isoso/scanner": "file:./vendor/scanner",
+    "chalk": "^5.4.1",
+    "commander": "^12.1.0",
+    "fast-glob": "^3.3.2"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "templates",
+    "vendor"
+  ],
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "wcag",
+    "react",
+    "typescript",
+    "cli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
