@@ -5,3 +5,4 @@ export * from "./rules/jsx-rules.js";
 export * from "./explain.js";
 export * from "./ai-scan.js";
 export * from "./report.js";
+export * from "./fixable.js";

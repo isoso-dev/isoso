@@ -10,17 +10,31 @@ import {
   getRuleById,
   type Severity,
 } from "@isoso/core";
-import { scanProject } from "@isoso/scanner";
+import { fixProject, scanProject } from "@isoso/scanner";
+import { isFixableRuleId } from "@isoso/core";
 import { loadProjectEnv } from "./load-env.js";
+import { printIsosoHelp } from "./help.js";
 
 loadProjectEnv();
 
 const program = new Command();
 
+program.exitOverride();
+
+program.configureOutput({
+  writeErr: (str) => {
+    const trimmed = str.trim();
+    if (!trimmed) return;
+    if (trimmed.startsWith("error:") && trimmed.includes("unknown option")) return;
+    if (trimmed.startsWith("error:") && trimmed.includes("unknown command")) return;
+    process.stderr.write(str);
+  },
+});
+
 program
   .name("isoso")
   .description("Accessibility testing for React and TypeScript codebases")
-  .version("0.2.0");
+  .version("0.3.0");
 
 program
   .command("scan")
@@ -102,6 +116,79 @@ program
   );
 
 program
+  .command("fix")
+  .description("Apply safe automatic fixes for fixable static rules")
+  .argument("[path]", "Project root", ".")
+  .option("--rules <ids>", "Comma-separated fixable rule ids")
+  .option("--write", "Write changes to files (default is dry-run)")
+  .option("--dry-run", "Preview fixes without writing (default)")
+  .action(
+    async (
+      fixPath: string,
+      opts: { rules?: string; write?: boolean; dryRun?: boolean },
+    ) => {
+      if (opts.write && opts.dryRun) {
+        console.error(chalk.red("Use either --write or --dry-run, not both."));
+        process.exit(1);
+      }
+
+      const root = path.resolve(fixPath);
+      const ruleIds = opts.rules?.split(",").map((s) => s.trim()).filter(Boolean);
+      const write = Boolean(opts.write);
+
+      console.error(
+        chalk.dim(
+          write
+            ? "Applying fixes to disk…"
+            : "Dry run — no files will be changed (pass --write to apply).",
+        ),
+      );
+
+      const result = await fixProject({
+        root,
+        ruleIds,
+        write,
+        onProgress: (msg) => console.error(chalk.dim(msg)),
+      });
+
+      const lines: string[] = [
+        "Isoso fix",
+        `Root: ${result.root}`,
+        `Mode: ${write ? "write" : "dry-run"}`,
+        `Files scanned: ${result.filesScanned}`,
+        `Fixable findings: ${result.fixableFindings}`,
+        "",
+      ];
+
+      if (result.outcomes.length === 0) {
+        lines.push("No automatic fixes applied.");
+      } else {
+        for (const o of result.outcomes) {
+          const rel = path.relative(result.root, o.file) || o.file;
+          lines.push(`${rel}${o.written ? chalk.green(" (written)") : ""}`);
+          for (const a of o.applied) {
+            lines.push(`  ${chalk.yellow(a.ruleId)}:${a.line} — ${a.description}`);
+          }
+          lines.push("");
+        }
+        if (!write) {
+          lines.push(chalk.dim("Re-run with --write to apply these edits."));
+        }
+      }
+
+      lines.push(`Completed in ${result.durationMs}ms`);
+      console.log(lines.join("\n"));
+    },
+  );
+
+program
+  .command("help")
+  .description("Show all commands and options")
+  .action(() => {
+    printIsosoHelp(program);
+  });
+
+program
   .command("explain")
   .description("Explain a finding (AI when ISOSO_AI_KEY is set)")
   .requiredOption("--rule <id>", "Rule id")
@@ -155,12 +242,28 @@ program
   .action(async () => {
     const { jsxRules } = await import("@isoso/core");
     for (const r of jsxRules) {
-      console.log(`${chalk.yellow(r.id)} — ${r.name} [${r.severity}]`);
+      const fixTag = isFixableRuleId(r.id) ? chalk.green(" [fixable]") : "";
+      console.log(`${chalk.yellow(r.id)} — ${r.name} [${r.severity}]${fixTag}`);
       console.log(chalk.dim(`  WCAG: ${r.wcag.join(", ")}`));
     }
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {
+  const coded =
+    err && typeof err === "object" && "code" in err
+      ? (err as { code?: string; message?: string })
+      : undefined;
+
+  if (coded?.code === "commander.unknownOption" || coded?.code === "commander.unknownCommand") {
+    console.error(chalk.red(coded.message ?? "Unknown option or command"));
+    printIsosoHelp(program);
+    process.exit(1);
+  }
+
+  if (coded?.code === "commander.helpDisplayed" || coded?.code === "commander.help") {
+    process.exit(0);
+  }
+
   console.error(chalk.red(err instanceof Error ? err.message : String(err)));
   process.exit(1);
 });

@@ -98,7 +98,7 @@ npx @isoso.dev/isoso explain --rule img-missing-alt --file src/App.tsx --line 12
 Pin a version when you care about reproducibility:
 
 ```bash
-npx @isoso.dev/isoso@0.2.0 scan
+npx @isoso.dev/isoso@0.3.0 scan
 ```
 
 ### Add to the repo you scan (typical)
