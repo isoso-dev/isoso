@@ -4,7 +4,7 @@
 
 ### Accessibility testing for developers who ship React & TypeScript
 
-**Static WCAG-oriented rules in your terminal · Optional AI review · CI-ready JSON reports**
+**Static WCAG-oriented rules in your terminal · Auto-fix codemods · Optional AI review · CI-ready JSON reports**
 
 <br />
 
@@ -25,6 +25,7 @@
 - [Quick start](#quick-start)
 - [Commands](#commands)
   - [`isoso scan`](#isoso-scan)
+  - [`isoso fix`](#isoso-fix)
   - [`isoso rules`](#isoso-rules)
   - [`isoso explain`](#isoso-explain)
 - [Built-in rules](#built-in-rules)
@@ -70,6 +71,7 @@ flowchart LR
 | Mode | When to use |
 |------|-------------|
 | **Static rules** | Fast, free, deterministic—ideal for CI and pre-commit |
+| **`isoso fix`** | Apply codemods for **57** fixable static rules (writes to disk by default; use `--dry-run` to preview) |
 | **AI scan** | Deeper pass on each file when you set an AI key; findings use the **same rule IDs and severities** as static mode |
 | **Explain** | Turn a finding into impact + remediation narrative (AI or built-in copy) |
 
@@ -155,8 +157,12 @@ npx @isoso.dev/isoso scan --static
 # JSON for pipelines + fail the job on serious+ findings
 npx @isoso.dev/isoso scan --format json -o isoso-report.json --fail-on serious
 
-# See every rule id and WCAG mapping (57 rules)
+# See every rule id and WCAG mapping (57 rules; fixable rules tagged in output)
 npx @isoso.dev/isoso rules
+
+# Auto-fix static findings (preview first, then apply)
+npx @isoso.dev/isoso fix --dry-run
+npx @isoso.dev/isoso fix
 
 # Explain one rule (AI when a key is set)
 npx @isoso.dev/isoso explain --rule img-missing-alt --file src/App.tsx --line 12
@@ -168,7 +174,8 @@ npx @isoso.dev/isoso explain --rule img-missing-alt --file src/App.tsx --line 12
 {
   "scripts": {
     "a11y": "isoso scan --static --fail-on serious",
-    "a11y:report": "isoso scan --format json -o isoso-report.json"
+    "a11y:report": "isoso scan --format json -o isoso-report.json",
+    "a11y:fix": "isoso fix --dry-run"
   }
 }
 ```
@@ -218,6 +225,32 @@ Findings: 3
 
 Completed in 124ms
 ```
+
+---
+
+### `isoso fix`
+
+Apply **automatic codemods** for findings from the static rule engine. Each fixable rule id is marked **`[fixable]`** in `isoso rules`. Fixes run on the same **`.tsx` / `.jsx`** files as `scan` (AI findings are not auto-fixed).
+
+```bash
+isoso fix [path] [options]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `[path]` | `.` | Project root |
+| `--dry-run` | — | List edits without writing files (**default is to write**) |
+| `--rules <ids>` | all fixable | Comma-separated fixable rule ids |
+
+**Typical workflow**
+
+```bash
+isoso scan --static
+isoso fix --dry-run    # review proposed edits
+isoso fix              # apply to disk
+```
+
+Review diffs in git before merging—codemods handle common patterns but cannot replace judgment on every component.
 
 ---
 
@@ -339,7 +372,7 @@ Run **`isoso scan`** in any CI pipeline (GitHub Actions, GitLab CI, etc.). Exit 
 
 | Package | npm name | Role |
 |---------|----------|------|
-| `packages/isoso-cli` | **`@isoso.dev/isoso`** | CLI entrypoint (`scan`, `rules`, `explain`); binary name **`isoso`** |
+| `packages/isoso-cli` | **`@isoso.dev/isoso`** | CLI entrypoint (`scan`, `fix`, `rules`, `explain`); binary name **`isoso`** |
 | `packages/isoso-core` | `@isoso/core` | Rule engine, reports, AI scan + explain |
 | `packages/isoso-scanner` | `@isoso/scanner` | Glob + Babel JSX extraction, orchestrates core |
 
@@ -381,6 +414,6 @@ MIT — see [LICENSE](LICENSE).
 
 <div align="center">
 
-**Ship accessible UI earlier.** Run `npx @isoso.dev/isoso scan` on your app today.
+**Ship accessible UI earlier.** Run `npx @isoso.dev/isoso scan` on your app, then `npx @isoso.dev/isoso fix` for safe auto-edits.
 
 </div>
