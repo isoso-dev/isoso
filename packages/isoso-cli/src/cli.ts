@@ -8,12 +8,14 @@ import {
   formatTextReport,
   exitCodeForResult,
   getRuleById,
+  hasAiScanKey,
   type Severity,
 } from "@isoso/core";
 import { fixProject, scanProject } from "@isoso/scanner";
 import { isFixableRuleId } from "@isoso/core";
 import { loadProjectEnv } from "./load-env.js";
-import { printIsosoHelp } from "./help.js";
+import { attachDetailedHelp, printIsosoHelp } from "./help.js";
+import { readCliVersion, warnIfOutdatedCli } from "./version-check.js";
 
 loadProjectEnv();
 
@@ -34,7 +36,7 @@ program.configureOutput({
 program
   .name("isoso")
   .description("Accessibility testing for React and TypeScript codebases")
-  .version("0.3.0");
+  .version(readCliVersion());
 
 program
   .command("scan")
@@ -58,11 +60,10 @@ program
         ai?: boolean;
       }
     ) => {
+    const outdated = await warnIfOutdatedCli();
     const root = path.resolve(scanPath);
     const ruleIds = opts.rules?.split(",").map((s) => s.trim()).filter(Boolean);
-    const hasKey = Boolean(
-      process.env.ISOSO_AI_KEY?.trim() ?? process.env.OPENAI_API_KEY?.trim(),
-    );
+    const hasKey = hasAiScanKey();
 
     if (opts.ai && !hasKey) {
       console.error(
@@ -97,8 +98,11 @@ program
       onProgress: (msg) => console.error(chalk.dim(msg)),
     });
 
-    const report =
+    let report =
       opts.format === "json" ? formatJsonReport(result) : formatTextReport(result);
+    if (outdated && opts.format === "text") {
+      report = `${outdated.plainBanner}\n\n${report}`;
+    }
 
     if (opts.output) {
       const { writeFile } = await import("node:fs/promises");
@@ -117,30 +121,25 @@ program
 
 program
   .command("fix")
-  .description("Apply safe automatic fixes for fixable static rules")
+  .description("Apply automatic fixes for static scan findings")
   .argument("[path]", "Project root", ".")
   .option("--rules <ids>", "Comma-separated fixable rule ids")
-  .option("--write", "Write changes to files (default is dry-run)")
-  .option("--dry-run", "Preview fixes without writing (default)")
+  .option("--dry-run", "Preview fixes without writing to disk")
   .action(
     async (
       fixPath: string,
-      opts: { rules?: string; write?: boolean; dryRun?: boolean },
+      opts: { rules?: string; dryRun?: boolean },
     ) => {
-      if (opts.write && opts.dryRun) {
-        console.error(chalk.red("Use either --write or --dry-run, not both."));
-        process.exit(1);
-      }
-
+      const outdated = await warnIfOutdatedCli();
       const root = path.resolve(fixPath);
       const ruleIds = opts.rules?.split(",").map((s) => s.trim()).filter(Boolean);
-      const write = Boolean(opts.write);
+      const write = !opts.dryRun;
 
       console.error(
         chalk.dim(
           write
             ? "Applying fixes to disk…"
-            : "Dry run — no files will be changed (pass --write to apply).",
+            : "Dry run — no files will be changed (omit --dry-run to apply).",
         ),
       );
 
@@ -152,6 +151,7 @@ program
       });
 
       const lines: string[] = [
+        ...(outdated ? [outdated.plainBanner, ""] : []),
         "Isoso fix",
         `Root: ${result.root}`,
         `Mode: ${write ? "write" : "dry-run"}`,
@@ -172,7 +172,7 @@ program
           lines.push("");
         }
         if (!write) {
-          lines.push(chalk.dim("Re-run with --write to apply these edits."));
+          lines.push(chalk.dim("Re-run without --dry-run to write these edits."));
         }
       }
 
@@ -218,9 +218,7 @@ program
         snippet: opts.snippet,
         fixHint: rule?.description,
       };
-      const hasKey = Boolean(
-        process.env.ISOSO_AI_KEY?.trim() ?? process.env.OPENAI_API_KEY?.trim(),
-      );
+      const hasKey = hasAiScanKey();
       if (!opts.builtin && !hasKey) {
         console.error(
           chalk.yellow(
@@ -248,6 +246,8 @@ program
     }
   });
 
+attachDetailedHelp(program);
+
 program.parseAsync(process.argv).catch((err: unknown) => {
   const coded =
     err && typeof err === "object" && "code" in err
@@ -261,6 +261,7 @@ program.parseAsync(process.argv).catch((err: unknown) => {
   }
 
   if (coded?.code === "commander.helpDisplayed" || coded?.code === "commander.help") {
+    printIsosoHelp(program);
     process.exit(0);
   }
 

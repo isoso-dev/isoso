@@ -31,6 +31,10 @@ function attrString(attrs: JsxElementContext["attributes"], key: string): string
   return typeof v === "string" ? v : undefined;
 }
 
+function inputType(element: JsxElementContext): string | undefined {
+  return attrString(element.attributes, "type");
+}
+
 function isHeadingTag(tag: string): boolean {
   return /^h[1-6]$/i.test(tag);
 }
@@ -802,6 +806,265 @@ export const jsxRules: Rule[] = [
         "Add value= or aria-label.",
       );
     },
+  },
+  {
+    id: "button-missing-type",
+    name: "Button missing type attribute",
+    description: "Buttons default to submit inside forms; set type explicitly.",
+    wcag: ["3.2.2 On Input", "4.1.2 Name, Role, Value"],
+    severity: "moderate",
+    check(element) {
+      if (element.tagName !== "button" && element.tagName !== "Button") return null;
+      if (attrString(element.attributes, "type")) return null;
+      return findingFor(
+        "button-missing-type",
+        element,
+        "<button> is missing a type attribute.",
+        'Add type="button" for actions or type="submit" for form submit.',
+      );
+    },
+  },
+  {
+    id: "img-alt-whitespace",
+    name: "Image alt is whitespace only",
+    description: "Whitespace-only alt is treated as missing meaningful text.",
+    wcag: ["1.1.1 Non-text Content"],
+    severity: "serious",
+    check(element) {
+      if (element.tagName !== "img" && element.tagName !== "Image") return null;
+      const alt = attrString(element.attributes, "alt");
+      if (alt === undefined) return null;
+      if (alt.trim().length > 0) return null;
+      if (hasTruthyAttr(element.attributes, "aria-hidden")) return null;
+      return findingFor(
+        "img-alt-whitespace",
+        element,
+        "<img> alt is empty or whitespace-only.",
+        'Use meaningful alt text or alt="" only if decorative.',
+      );
+    },
+  },
+  {
+    id: "dialog-missing-aria-modal",
+    name: "Dialog missing aria-modal",
+    description: "Modal dialogs should expose aria-modal to assistive tech.",
+    wcag: ["4.1.2 Name, Role, Value"],
+    severity: "serious",
+    check(element) {
+      const isDialog =
+        element.tagName === "dialog" ||
+        element.tagName === "Dialog" ||
+        attrString(element.attributes, "role") === "dialog";
+      if (!isDialog) return null;
+      if (hasTruthyAttr(element.attributes, "aria-modal")) return null;
+      return findingFor(
+        "dialog-missing-aria-modal",
+        element,
+        "Dialog is missing aria-modal={true}.",
+        "Add aria-modal={true} on modal dialog surfaces.",
+      );
+    },
+  },
+  {
+    id: "aria-expanded-without-controls",
+    name: "aria-expanded without aria-controls",
+    description: "Expandable controls should reference controlled content.",
+    wcag: ["4.1.2 Name, Role, Value"],
+    severity: "moderate",
+    check(element) {
+      if (!hasTruthyAttr(element.attributes, "aria-expanded")) return null;
+      if (attrString(element.attributes, "aria-controls")) return null;
+      return findingFor(
+        "aria-expanded-without-controls",
+        element,
+        "aria-expanded is set without aria-controls.",
+        "Add aria-controls pointing at the expandable region id.",
+      );
+    },
+  },
+  {
+    id: "aria-labelledby-empty",
+    name: "Empty aria-labelledby",
+    description: "aria-labelledby must reference element ids.",
+    wcag: ["4.1.2 Name, Role, Value"],
+    severity: "serious",
+    check(element) {
+      const v = attrString(element.attributes, "aria-labelledby");
+      if (v === undefined) return null;
+      if (v.trim().length > 0) return null;
+      return findingFor(
+        "aria-labelledby-empty",
+        element,
+        "aria-labelledby is empty.",
+        "Reference id(s) of labelling elements or remove the attribute.",
+      );
+    },
+  },
+  {
+    id: "aria-describedby-empty",
+    name: "Empty aria-describedby",
+    description: "aria-describedby must reference element ids.",
+    wcag: ["4.1.2 Name, Role, Value"],
+    severity: "serious",
+    check(element) {
+      const v = attrString(element.attributes, "aria-describedby");
+      if (v === undefined) return null;
+      if (v.trim().length > 0) return null;
+      return findingFor(
+        "aria-describedby-empty",
+        element,
+        "aria-describedby is empty.",
+        "Reference help text element id(s) or remove the attribute.",
+      );
+    },
+  },
+  {
+    id: "input-email-autocomplete-missing",
+    name: "Email input missing autocomplete",
+    description: "Email fields benefit from autocomplete for usability and WCAG 2.2.",
+    wcag: ["3.3.8 Accessible Authentication", "1.3.5 Identify Input Purpose"],
+    severity: "moderate",
+    check(element) {
+      if (element.tagName !== "input" && element.tagName !== "Input") return null;
+      if (inputType(element) !== "email") return null;
+      if (attrString(element.attributes, "autoComplete")) return null;
+      return findingFor(
+        "input-email-autocomplete-missing",
+        element,
+        "Email input is missing autoComplete.",
+        'Add autoComplete="email" or "username".',
+      );
+    },
+  },
+  {
+    id: "input-password-autocomplete-missing",
+    name: "Password input missing autocomplete",
+    description: "Password fields should declare autocomplete.",
+    wcag: ["3.3.8 Accessible Authentication", "1.3.5 Identify Input Purpose"],
+    severity: "moderate",
+    check(element) {
+      if (element.tagName !== "input" && element.tagName !== "Input") return null;
+      if (inputType(element) !== "password") return null;
+      if (attrString(element.attributes, "autoComplete")) return null;
+      return findingFor(
+        "input-password-autocomplete-missing",
+        element,
+        "Password input is missing autoComplete.",
+        'Add autoComplete="current-password" or "new-password".',
+      );
+    },
+  },
+  {
+    id: "link-title-only",
+    name: "Link relies on title only",
+    description: "Visible link text is required; title alone is insufficient.",
+    wcag: ["2.4.4 Link Purpose", "4.1.2 Name, Role, Value"],
+    severity: "moderate",
+    check(element) {
+      if (element.tagName !== "a" && element.tagName !== "Link") return null;
+      if (element.hasChildrenText || attrString(element.attributes, "aria-label")) return null;
+      if (!attrString(element.attributes, "title")) return null;
+      return findingFor(
+        "link-title-only",
+        element,
+        "Link uses title but has no discernible text.",
+        "Add visible link text; do not rely on title alone.",
+      );
+    },
+  },
+  {
+    id: "audio-autoplay-without-controls",
+    name: "Autoplay audio without controls",
+    description: "Autoplaying audio must be controllable.",
+    wcag: ["1.4.2 Audio Control"],
+    severity: "serious",
+    check(element) {
+      if (element.tagName !== "audio" && element.tagName !== "Audio") return null;
+      if (!hasTruthyAttr(element.attributes, "autoPlay")) return null;
+      if (hasTruthyAttr(element.attributes, "controls")) return null;
+      return findingFor(
+        "audio-autoplay-without-controls",
+        element,
+        "<audio autoPlay> is missing controls.",
+        "Add controls or remove autoplay.",
+      );
+    },
+  },
+  {
+    id: "blink-marquee-element",
+    name: "Blink or marquee element",
+    description: "Moving/blinking content needs user control.",
+    wcag: ["2.2.2 Pause, Stop, Hide"],
+    severity: "serious",
+    check(element) {
+      const tag = element.tagName.toLowerCase();
+      if (tag !== "marquee" && tag !== "blink") return null;
+      return findingFor(
+        "blink-marquee-element",
+        element,
+        "Avoid blink/marquee elements.",
+        "Use CSS animations with prefers-reduced-motion and user controls.",
+      );
+    },
+  },
+  {
+    id: "html-lang-empty",
+    name: "Html lang empty",
+    description: "Language attribute must have a valid value.",
+    wcag: ["3.1.1 Language of Page"],
+    severity: "serious",
+    check(element) {
+      if (element.tagName !== "html") return null;
+      const lang = attrString(element.attributes, "lang");
+      if (lang === undefined) return null;
+      if (lang.trim().length > 0) return null;
+      return findingFor(
+        "html-lang-empty",
+        element,
+        "<html lang> is empty.",
+        'Set lang="en" or the correct BCP 47 language tag.',
+      );
+    },
+  },
+  {
+    id: "table-missing-caption",
+    name: "Table missing caption",
+    description: "Data tables should include a caption.",
+    wcag: ["1.3.1 Info and Relationships"],
+    severity: "moderate",
+    check: () => null,
+  },
+  {
+    id: "video-missing-captions-track",
+    name: "Video missing captions track",
+    description: "Prerecorded video should provide captions.",
+    wcag: ["1.2.2 Captions (Prerecorded)"],
+    severity: "moderate",
+    check: () => null,
+  },
+  {
+    id: "meta-http-equiv-refresh",
+    name: "Meta refresh",
+    description: "Timed redirects disorient users.",
+    wcag: ["2.2.1 Timing Adjustable", "2.2.2 Pause, Stop, Hide"],
+    severity: "serious",
+    check: () => null,
+  },
+  {
+    id: "meta-viewport-zoom-lock",
+    name: "Viewport prevents zoom",
+    description: "Users must be able to zoom the page.",
+    wcag: ["1.4.4 Resize Text", "1.4.10 Reflow"],
+    severity: "serious",
+    check: () => null,
+  },
+  {
+    id: "heading-level-skip",
+    name: "Skipped heading level",
+    description: "Heading levels should not skip (e.g. h1 to h3).",
+    wcag: ["2.4.6 Headings and Labels", "1.3.1 Info and Relationships"],
+    severity: "moderate",
+    check: () => null,
   },
   {
     id: "multiple-h1",

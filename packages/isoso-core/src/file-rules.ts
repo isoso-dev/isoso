@@ -24,8 +24,13 @@ function fileFinding(
 export function runFileRules(file: string, source: string): Finding[] {
   const findings: Finding[] = [];
   const lines = source.split("\n");
-  let h1Lines: number[] = [];
-  let mainLines: number[] = [];
+  const h1Lines: number[] = [];
+  const mainLines: number[] = [];
+  let lastHeadingLevel = 0;
+  const fileHasCaptionTrack = /<track\b[^>]*\bkind\s*=\s*["']captions["']/i.test(source);
+  const fileHasTableCaption = /<caption\b/i.test(source);
+  let reportedVideoCaptions = false;
+  let reportedTableCaption = false;
 
   for (let i = 0; i < lines.length; i++) {
     const lineNum = i + 1;
@@ -36,14 +41,100 @@ export function runFileRules(file: string, source: string): Finding[] {
       mainLines.push(lineNum);
     }
 
-    if (/<html\b/i.test(line) && !/\blang\s*=/.test(line)) {
+    const hm = line.match(/<h([1-6])\b/i);
+    if (hm) {
+      const level = Number.parseInt(hm[1]!, 10);
+      if (lastHeadingLevel > 0 && level > lastHeadingLevel + 1) {
+        findings.push(
+          fileFinding(
+            "heading-level-skip",
+            file,
+            lineNum,
+            `Heading level jumps from h${lastHeadingLevel} to h${level}.`,
+            "Use sequential heading levels (do not skip).",
+          ),
+        );
+      }
+      lastHeadingLevel = level;
+    }
+
+    if (/<html\b/i.test(line)) {
+      if (!/\blang\s*=/.test(line)) {
+        findings.push(
+          fileFinding(
+            "html-missing-lang",
+            file,
+            lineNum,
+            "<html> is missing a lang attribute.",
+            'Add lang="en" (or the page language).',
+          ),
+        );
+      } else if (/\blang\s*=\s*["']\s*["']/.test(line)) {
+        findings.push(
+          fileFinding(
+            "html-lang-empty",
+            file,
+            lineNum,
+            "<html lang> is empty.",
+            'Set lang="en" or the correct BCP 47 language tag.',
+          ),
+        );
+      }
+    }
+
+    if (/http-equiv\s*=\s*["']refresh["']/i.test(line)) {
       findings.push(
         fileFinding(
-          "html-missing-lang",
+          "meta-http-equiv-refresh",
           file,
           lineNum,
-          "<html> is missing a lang attribute.",
-          'Add lang="en" (or the page language).',
+          "Meta refresh redirects or reloads the page automatically.",
+          "Use server redirects or user-initiated navigation instead.",
+        ),
+      );
+    }
+
+    if (/<meta\b/i.test(line) && /\bname\s*=\s*["']viewport["']/i.test(line)) {
+      if (/user-scalable\s*=\s*no/i.test(line) || /maximum-scale\s*=\s*["']?1(\.0)?["']?/.test(line)) {
+        findings.push(
+          fileFinding(
+            "meta-viewport-zoom-lock",
+            file,
+            lineNum,
+            "Viewport meta prevents zoom.",
+            "Allow pinch zoom (avoid user-scalable=no and maximum-scale=1).",
+          ),
+        );
+      }
+    }
+
+    if (
+      /<table\b/i.test(line) &&
+      !/\brole\s*=\s*["']presentation["']/i.test(line) &&
+      !fileHasTableCaption &&
+      !reportedTableCaption
+    ) {
+      reportedTableCaption = true;
+      findings.push(
+        fileFinding(
+          "table-missing-caption",
+          file,
+          lineNum,
+          "<table> should include a <caption>.",
+          "Add <caption> as the first table child.",
+        ),
+      );
+    }
+
+    if (/<video\b/i.test(line) && !fileHasCaptionTrack && !reportedVideoCaptions && !/\baria-hidden\s*=/.test(line)) {
+      reportedVideoCaptions = true;
+      findings.push(
+        fileFinding(
+          "video-missing-captions-track",
+          file,
+          lineNum,
+          "<video> has no captions track in this file.",
+          'Add <track kind="captions" /> or equivalent captions.',
         ),
       );
     }

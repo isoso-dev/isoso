@@ -6,6 +6,7 @@
   ],
   "scripts": {
     "build": "npm run build -w @isoso/core && npm run build -w @isoso/scanner && node scripts/copy-vendor.mjs && npm run build -w @isoso.dev/isoso",
+    "sync:cloud": "node scripts/sync-cloud-scan.mjs",
     "dev": "npm run build && node packages/isoso-cli/dist/cli.js",
     "test": "npm run test -w @isoso/core"
   },

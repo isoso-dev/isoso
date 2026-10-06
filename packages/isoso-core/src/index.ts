@@ -6,3 +6,4 @@ export * from "./explain.js";
 export * from "./ai-scan.js";
 export * from "./report.js";
 export * from "./fixable.js";
+export * from "./line-scan.js";

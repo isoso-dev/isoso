@@ -48,7 +48,7 @@ flowchart LR
   end
   subgraph isoso [Isoso CLI]
     Parse[Babel JSX extract]
-    Static[40 static rules]
+    Static[57 static rules]
     AI[Optional AI pass]
     Report[Text or JSON report]
   end
@@ -98,7 +98,7 @@ npx @isoso.dev/isoso explain --rule img-missing-alt --file src/App.tsx --line 12
 Pin a version when you care about reproducibility:
 
 ```bash
-npx @isoso.dev/isoso@0.3.0 scan
+npx @isoso.dev/isoso@0.3.3 scan
 ```
 
 ### Add to the repo you scan (typical)
@@ -155,7 +155,7 @@ npx @isoso.dev/isoso scan --static
 # JSON for pipelines + fail the job on serious+ findings
 npx @isoso.dev/isoso scan --format json -o isoso-report.json --fail-on serious
 
-# See every rule id and WCAG mapping (40 rules)
+# See every rule id and WCAG mapping (57 rules)
 npx @isoso.dev/isoso rules
 
 # Explain one rule (AI when a key is set)
@@ -256,7 +256,7 @@ isoso explain --rule <id> [options]
 
 ## Built-in rules
 
-**40** static checks ship with `@isoso/core` (images, forms, keyboard, landmarks, media, tables, focus, and document structure). Severity drives `--fail-on` and CI gates.
+**57** static checks ship with `@isoso/core` (images, forms, keyboard, landmarks, media, tables, focus, document structure, autocomplete, captions, and viewport). Severity drives `--fail-on` and CI gates.
 
 List every rule id, WCAG reference, and severity:
 

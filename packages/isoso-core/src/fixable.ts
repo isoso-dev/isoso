@@ -1,14 +1,11 @@
-/** Rule ids that `isoso fix` can apply automatically (static, conservative edits). */
-export const FIXABLE_RULE_IDS = [
-  "img-missing-alt",
-  "input-image-missing-alt",
-  "html-missing-lang",
-  "iframe-missing-title",
-] as const;
+import { jsxRules } from "./rules/jsx-rules.js";
 
-export type FixableRuleId = (typeof FIXABLE_RULE_IDS)[number];
+/** Static rule ids that `isoso fix` attempts to auto-fix (same rule set as static scan). */
+export const FIXABLE_RULE_IDS = jsxRules.map((r) => r.id);
 
 const FIXABLE_SET = new Set<string>(FIXABLE_RULE_IDS);
+
+export type FixableRuleId = (typeof FIXABLE_RULE_IDS)[number];
 
 export function isFixableRuleId(ruleId: string): boolean {
   return FIXABLE_SET.has(ruleId);

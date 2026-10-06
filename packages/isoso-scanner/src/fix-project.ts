@@ -29,7 +29,7 @@ export async function fixProject(options: FixProjectOptions): Promise<FixProject
   const root = path.resolve(options.root);
   const allowed =
     options.ruleIds?.length && options.ruleIds.length > 0
-      ? new Set(options.ruleIds.filter((id) => getFixableRuleIds().includes(id)))
+      ? new Set(options.ruleIds)
       : undefined;
 
   const scanResult = await scanProject({
@@ -39,10 +39,9 @@ export async function fixProject(options: FixProjectOptions): Promise<FixProject
     onProgress: options.onProgress,
   });
 
+  const fixableIds = new Set(getFixableRuleIds());
   const fixableFindings = scanResult.findings.filter(
-    (f) =>
-      getFixableRuleIds().includes(f.ruleId) &&
-      (!allowed || allowed.has(f.ruleId)),
+    (f) => fixableIds.has(f.ruleId) && (!allowed || allowed.has(f.ruleId)),
   );
 
   const byFile = new Map<string, Finding[]>();
