@@ -31,6 +31,7 @@
 - [Built-in rules](#built-in-rules)
 - [Static vs AI scanning](#static-vs-ai-scanning)
 - [CI integration](#ci-integration)
+- [Security & compliance](#security--compliance)
 - [Monorepo layout](#monorepo-layout)
 - [Developing Isoso](#developing-isoso)
 - [Isoso Cloud](#isoso-cloud)
@@ -365,6 +366,64 @@ Run **`isoso scan`** in any CI pipeline (GitHub Actions, GitLab CI, etc.). Exit 
 - Prefer `--static` in CI for speed and predictable cost.
 - Store `ISOSO_AI_KEY` in CI secrets only if you intentionally run AI in the pipeline.
 - **GitHub org integration** (connect repos, PR scans, dashboard history) is **[Isoso Cloud](https://isoso.dev)** only—not part of this CLI.
+
+---
+
+## Security & compliance
+
+Read this before you gate releases, publish compliance claims, or treat scan output as proof of accessibility.
+
+### No WCAG or legal compliance guarantee
+
+Isoso **does not** certify, audit, or guarantee that your application meets **WCAG 2.x** (any level), **ADA**, **Section 508**, **EN 301 549**, **EAA**, or any other accessibility standard or law.
+
+| What Isoso does | What it does **not** do |
+|-----------------|-------------------------|
+| Flags common JSX/TSX patterns mapped to WCAG-oriented **heuristics** | Prove conformance or “pass” an official audit |
+| Helps teams catch issues **early in source** | Replace screen reader testing, keyboard QA, or user research |
+| Produces CI-friendly reports and optional auto-fixes | Constitute legal sign-off, VPAT, or third-party certification |
+
+Rule ids and WCAG references in `isoso rules` describe **why a pattern is risky**, not a determination that your product complies or violates the law. **You** remain responsible for your product’s accessibility and legal obligations.
+
+### Source-level analysis only
+
+The CLI analyzes **`.tsx` / `.jsx` source files**—not the live DOM, runtime CSS, content from CMS/APIs, PDFs, native apps, or third-party embeds. Findings can be **false positives** (safe patterns flagged) or **false negatives** (issues only visible at runtime or in production builds).
+
+Use Isoso **together with** browser tools (e.g. axe DevTools, Lighthouse), manual testing, assistive technology checks, and professional audits when compliance matters.
+
+### Auto-fix (`isoso fix`) risks
+
+Codemods apply mechanical edits. They can change behavior, break tests, or miss context (decorative vs informative images, custom components, design-system wrappers). **Always review git diffs** before merge; do not run `fix` unattended on production branches without review.
+
+### AI scanning and explain
+
+When `ISOSO_AI_KEY` is set, file snippets and rule context may be sent to **your configured AI provider**. You are responsible for provider terms, data handling, and **never committing API keys** to git.
+
+- Prefer **`--static`** in CI when you want zero external data transfer.
+- Use **`--builtin`** on `explain` for offline, curated copy only.
+- AI output can vary by model and is **not** deterministic legal or compliance advice.
+
+### Secrets and environment
+
+| Practice | Why |
+|----------|-----|
+| Keep `ISOSO_AI_KEY` in `.env` or CI secrets | Keys in repo history are exposed forever |
+| Add `.env` to `.gitignore` | Local keys must not ship with the app |
+| Scope CI secrets to jobs that need AI | Reduces blast radius if a workflow log leaks |
+
+The CLI loads `.env` by walking up from the current working directory—it does not encrypt or store keys beyond what your shell and provider do.
+
+### Severity gates are policy, not law
+
+`--fail-on` controls **exit codes for your pipeline** (e.g. fail on `serious` and above). That is **your** quality bar, not a mapping to WCAG conformance levels or legal safe harbor.
+
+### Isoso Cloud
+
+Dashboard scans, policies, and GitHub-connected runs on **[isoso.dev](https://isoso.dev)** are subject to separate **[Terms](https://isoso.dev/terms)** and **[Privacy Policy](https://isoso.dev/privacy)**. Cloud storage of findings **does not** mean your application is compliant.
+
+### Reporting security issues
+
+If you believe you have found a **security vulnerability** in the Isoso CLI (not an accessibility finding in your app), report it responsibly via **[info@isoso.dev](mailto:info@isoso.dev)** (subject: security). Do not open public issues with exploit details before coordination.
 
 ---
 
