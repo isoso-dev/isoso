@@ -1,6 +1,6 @@
 {
   "name": "@isoso.dev/isoso",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "publishConfig": {
     "access": "public"
   },
@@ -19,7 +19,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "prepublishOnly": "node ../../scripts/ensure-build.mjs"
+    "prepublishOnly": "node ../../scripts/ensure-build.mjs && node ../../scripts/copy-package-metadata.mjs"
   },
   "dependencies": {
     "@babel/parser": "^7.26.3",
@@ -34,7 +34,9 @@
   "files": [
     "bin",
     "dist",
-    "vendor"
+    "vendor",
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "accessibility",

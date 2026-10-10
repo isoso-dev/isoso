@@ -6,3 +6,5 @@ dist
 isoso-report.json
 packages/isoso-cli/vendor
 packages/isoso-cli/dist/isoso.bundle.js
+packages/isoso-cli/README.md
+packages/isoso-cli/LICENSE
