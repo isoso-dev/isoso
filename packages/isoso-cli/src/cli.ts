@@ -205,7 +205,8 @@ program
       message?: string;
       snippet?: string;
       builtin?: boolean;
-    }) => {
+    }    ) => {
+      await warnIfOutdatedCli();
       const rule = getRuleById(opts.rule);
       const finding = {
         ruleId: opts.rule,
@@ -238,6 +239,7 @@ program
   .command("rules")
   .description("List available static rules")
   .action(async () => {
+    await warnIfOutdatedCli();
     const { jsxRules } = await import("@isoso/core");
     for (const r of jsxRules) {
       const fixTag = isFixableRuleId(r.id) ? chalk.green(" [fixable]") : "";

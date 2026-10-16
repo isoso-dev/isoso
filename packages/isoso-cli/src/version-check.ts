@@ -28,7 +28,7 @@ export function isCiEnvironment(): boolean {
 
 function shouldCheckVersion(): boolean {
   if (process.env.ISOSO_SKIP_VERSION_CHECK?.trim()) return false;
-  return isCiEnvironment();
+  return true;
 }
 
 function parseCoreVersion(version: string): [number, number, number] {
@@ -94,7 +94,7 @@ export interface OutdatedCliInfo {
   plainBanner: string;
 }
 
-/** Returns outdated info when CI + npm latest is newer; prints red banner to stderr. */
+/** Returns outdated info when npm latest is newer; prints red banner to stderr. */
 export async function warnIfOutdatedCli(): Promise<OutdatedCliInfo | null> {
   if (!shouldCheckVersion()) return null;
 
